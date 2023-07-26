@@ -13,6 +13,7 @@ add_compile_options(-Wall -Wextra -Wpedantic -Wno-unused-parameter -g)
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_80,code=sm_80 -gencode arch=compute_86,code=sm_86 -gencode arch=compute_87,code=sm_87")
 option(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 
+include_directories(include)
 find_package(CUDA REQUIRED)
 cuda_add_executable(softmax1 src/softmax1.cu)
 #target_compile_features(softmax1 PUBLIC cuda_std_14)

@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <cuda_runtime.h>
+#include <iostream>
+#include "utils.h"
 
 // CUDA Kernel function to add the elements of two arrays on the GPU
 __global__ void softmax(float *x, int N)
@@ -26,24 +28,45 @@ __global__ void softmax(float *x, int N)
     x[index] = expf(x[index] - max_val) / sum_exp;
 }
 
+__global__ void warmup()
+{/*预热GPU，调用一个空的核函数*/}
+
+
 // Main function
 int main()
 {
+
+    warmup<<<1, 1>>>();
+    cudaDeviceSynchronize();
     int N = 5;
     float h_x[N] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f};
     float *d_x;
 
     // Allocate the memory on the GPU
-    cudaMalloc(&d_x, N*sizeof(float));
+    CHECK_CUDA_ERROR(cudaMalloc(&d_x, N*sizeof(float)));
 
     // Copy the array 'h_x' to the GPU
-    cudaMemcpy(d_x, h_x, N*sizeof(float), cudaMemcpyHostToDevice);
+    CHECK_CUDA_ERROR(cudaMemcpy(d_x, h_x, N*sizeof(float), cudaMemcpyHostToDevice));
+
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    cudaEventRecord(start);
 
     // Call the Kernel function
     softmax<<<1, N>>>(d_x, N);
 
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    float time = 0.f;
+    cudaEventElapsedTime(&time, start, stop);
+    std::cout << "Time for Softmax kernel is : " << time << " ms" << std::endl;
+
+    cudaEventDestroy(start);
+    cudaEventDestroy(stop);
+
     // Copy back the result array to the CPU
-    cudaMemcpy(h_x, d_x, N*sizeof(float), cudaMemcpyDeviceToHost);
+    CHECK_CUDA_ERROR(cudaMemcpy(h_x, d_x, N*sizeof(float), cudaMemcpyDeviceToHost));
 
     // Free the memory
     cudaFree(d_x);
